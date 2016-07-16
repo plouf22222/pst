@@ -19,30 +19,47 @@ def swap_order(d, wsz=4, gsz=2):
 def swap_order16(d):
     return "".join(d[i:i+2] for i in range(len(d)-2,-1,-2))
 
-def page_parser(tmp_page):
-    page_btpage = tmp_page[488:488+8]
-    #print(page_btpage)
-    page_btpage_cEnt = struct.unpack('<B', page_btpage[0:1])[0]
-    page_btpage_cEntMax = struct.unpack('<B', page_btpage[1:2])[0]
-    page_btpage_cbEnt = struct.unpack('<B', page_btpage[2:3])[0]
-    page_btpage_cLevel = struct.unpack('<B', page_btpage[3:4])[0]
-    page_btpage_dwPadding = struct.unpack('<I', page_btpage[4:8])[0]
-    print("cEnt = ", page_btpage_cEnt, " cEntMax = ",page_btpage_cEntMax, " cbEnt = ", page_btpage_cbEnt, " cLevel = ", page_btpage_cLevel)
-    print("dwPadding => ", page_btpage_dwPadding)
-    print("__PAGE TRAILER___")
-    page_trailer = tmp_page[512- 16:512]
-    page_trailer_ptype = page_trailer[0:1]
-    page_trailer_ptyperepeat = page_trailer[1:2]
-    print("type = ",page_trailer_ptype, " et repeat :", page_trailer_ptyperepeat)
-    page_trailer_wSig = page_trailer[2:4]
-    print("wSig = ", page_trailer_wSig)
-    page_trailer_dwCRC = page_trailer[4:8]
-    print("dwCRC = ", page_trailer_dwCRC)
-    page_trailer_bid = page_trailer[8:16]
-    print(page_trailer_bid.hex())
-    page_trailer_bid = struct.unpack('<Q', page_trailer_bid)[0]
-    print(page_trailer_bid)
 
+def lire_page(f_in, a_lire, NBTREE):
+    retour = list()
+    while len(a_lire) != 0:
+        numéro, position = a_lire.pop()
+        f_in.seek(position)
+        page = f_in.read(512)
+        btpage = page[488:488+8]
+        cEnt, cEntMax, cbEnt, cLevel, dwPadding = struct.unpack('<BBBBI', btpage)
+        trailerpage = page[512-16:512]
+        ptype, ptyper, wSig, dwCRC, bid = struct.unpack('<BBHIQ', trailerpage)
+        if numéro == bid:
+            pass
+            # print("COOL ça marche : ",numéro, " == ", bid, "|| ", cEnt)
+        else:
+            print("BUG ! les pages ne sont pas identiques")
+        if cLevel == 0:
+            # print("NBT ici !", cbEnt)
+            r_old = 0
+            r = 0
+            for i in range(0, cEnt):
+                r+=cbEnt
+                nid, zero,biddata, bidsub, nidparent, dwpad=(struct.unpack('<IIQQII', page[r_old:r]))
+                if nid in NBTREE:
+                    print("BUG je pensais que le NID est unique ....")
+                else:
+                    NBTREE[nid]=(biddata,bidsub,nidparent)
+                r_old = r
+        else:
+            print("Level ", cLevel, " .... reste à lire")
+            r_old = 0
+            r = 0
+            for i in range(0,cEnt):
+                r += cbEnt
+                nbt=(struct.unpack('<QQQ', page[r_old:r]))
+                # check if we are in the NBT tree
+                # print("Key=",nbt[i][0]," Bid=",nbt[i][1]," Ib=",nbt[i][2])
+                r_old = r
+                retour.append((nbt[1],nbt[2]))
+    return retour
+    
 
 TYPE = ""
 file = "backup.pst"
@@ -154,46 +171,11 @@ bReserved = root[69:70]
 wReserved = root[70:72]
 # Utilisation
 print("************* BNT ROOT ****************")
-f_in.seek(BREFNBT_ib)
-page = f_in.read(512)
-#print(page)
-print("__PAGE BTPAGE___")
-page_btpage = page[488:488+8]
-#print(page_btpage)
-page_btpage_cEnt = struct.unpack('<B', page_btpage[0:1])[0]
-page_btpage_cEntMax = struct.unpack('<B', page_btpage[1:2])[0]
-page_btpage_cbEnt = struct.unpack('<B', page_btpage[2:3])[0]
-page_btpage_cLevel = struct.unpack('<B', page_btpage[3:4])[0]
-page_btpage_dwPadding = struct.unpack('<I', page_btpage[4:8])[0]
-print("cEnt = ", page_btpage_cEnt, " cEntMax = ",page_btpage_cEntMax, " cbEnt = ", page_btpage_cbEnt, " cLevel = ", page_btpage_cLevel)
-print("dwPadding => ", page_btpage_dwPadding)
-print("__PAGE TRAILER___")
-page_trailer = page[512- 16:512]
-page_trailer_ptype = page_trailer[0:1]
-page_trailer_ptyperepeat = page_trailer[1:2]
-print("type = ",page_trailer_ptype, " et repeat :", page_trailer_ptyperepeat)
-page_trailer_wSig = page_trailer[2:4]
-print("wSig = ", page_trailer_wSig)
-page_trailer_dwCRC = page_trailer[4:8]
-print("dwCRC = ", page_trailer_dwCRC)
-page_trailer_bid = page_trailer[8:16]
-print(page_trailer_bid.hex())
-page_trailer_bid = struct.unpack('<Q', page_trailer_bid)[0]
-print(page_trailer_bid)
-# *************  BNT tree ************************
-r_old = 0
-r = 0
-nbt = list()
-NBT_TREE = dict()
-for i in range(0,page_btpage_cEnt):
-    r += page_btpage_cbEnt
-    nbt.append(struct.unpack('<QQQ', page[r_old:r]))
-    # check if we are in the NBT tree
-    # print("Key=",nbt[i][0]," Bid=",nbt[i][1]," Ib=",nbt[i][2])
-    print("Page Read ",nbt[i][1])
-    f_in.seek(nbt[i][2])
-    tmp_page = f_in.read(512)
-    page_parser(tmp_page)
-    r_old = r
-    
-
+NBTREE = dict()
+a_lire = list()
+a_lire.append((BREFNBT_bid, BREFNBT_ib))
+while len(a_lire) != 0:
+    a_lire = lire_page(f_in, a_lire, NBTREE)
+#for key in sorted(NBTREE):
+#    print(key, "==>",NBTREE[key])
+print("*********** BNT TREE chargé ************")
