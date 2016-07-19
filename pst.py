@@ -23,14 +23,14 @@ def swap_order16(d):
 def lire_page(f_in, a_lire, NBTREE):
     retour = list()
     while len(a_lire) != 0:
-        numéro, position = a_lire.pop()
+        numero, position = a_lire.pop()
         f_in.seek(position)
         page = f_in.read(512)
         btpage = page[488:488+8]
         cEnt, cEntMax, cbEnt, cLevel, dwPadding = struct.unpack('<BBBBI', btpage)
         trailerpage = page[512-16:512]
         ptype, ptyper, wSig, dwCRC, bid = struct.unpack('<BBHIQ', trailerpage)
-        if numéro == bid:
+        if numero == bid:
             pass
             # print("COOL ça marche : ",numéro, " == ", bid, "|| ", cEnt)
         else:
