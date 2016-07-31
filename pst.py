@@ -8,6 +8,7 @@ import binascii
 from array import *
 import struct
 from _ctypes import buffer_info
+from permute import *
 
 
 def swap_order(d, wsz=4, gsz=2):
@@ -127,7 +128,7 @@ dwUnique = f_in.read(4)
 rgnid = list()
 for i in range (0,32):
     rgnid.append(struct.unpack('<I', f_in.read(4))[0])
-# print(rgnid)
+print(rgnid)
 qwUnused = f_in.read(8)
 root = f_in.read(72)
 dwAlign = f_in.read(4)
@@ -204,7 +205,7 @@ print(len(BBTREE), " Enregistrements")
 #    print((int(a[0:5])),' - ', a[5:])
 # Pour l'instant pas de gestion de l'article BREF = car il n'y a pas de type différents
 '''
-for key in NBTREE:
+for key in sorted(NBTREE):
     print("pour le NID = ", key, "=>", NBTREE[key])
     bid = NBTREE[key][0]
     if bid in BBTREE:
@@ -212,11 +213,15 @@ for key in NBTREE:
 '''
 print("pour le block au 21440 34 byte de data")
 f_in.seek(21440)
-test = f_in.read(64)
-print(test)
+test = permute(f_in.read(64), True)
+
 print(test[0:34])
 a, b, c, d = struct.unpack("<HHLQ", test[48:])
 print(a,b,c,d)
+hnhdr = test[:12]
+a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
+print(a,b,c,d,e)
+
 print("pour le block bid 70792 au 72641728 de 2756 data")
 depart = 2756 + 16
 for i in range(0,64):
@@ -224,8 +229,26 @@ for i in range(0,64):
         print("padding = ", i, " block = ", depart +i, " bytes.")
         break
 f_in.seek(72641728)
-test = f_in.read(2816)
+test = permute(f_in.read(2816), True)
 a, b, c, d = struct.unpack("<HHLQ", test[2816-16:])
 print(a,b,c,d)
-print(test[:2756])
-    
+hnhdr = test[:12]
+a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
+print(a,b,c,d,e)
+#pour le NID =  2101284 => (14684, 14682, 32898)
+#touvé  (10748608, 3444, 2)
+print("pour le block bid 14684 au 10748608 de 3444 data")
+depart = 3444 + 16
+for i in range(0,64):
+    if (depart+i)%64 == 0:
+        print("padding = ", i, " block = ", depart +i, " bytes.")
+        break
+f_in.seek(10748608)
+test = permute(f_in.read(depart+i), True)
+a, b, c, d = struct.unpack("<HHLQ", test[(depart+i)-16:])
+print(a,b,c,d)
+hnhdr = test[:12]
+a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
+print(a,b,c,d,e)
+
+
