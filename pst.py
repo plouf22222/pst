@@ -20,7 +20,7 @@ def swap_order16(d):
     return "".join(d[i:i+2] for i in range(len(d)-2,-1,-2))
 
 
-def lire_page(f_in, a_lire, NBTREE):
+def lire_page(f_in, a_lire, TREE, tree_type):
     retour = list()
     while len(a_lire) != 0:
         numero, position = a_lire.pop()
@@ -41,14 +41,22 @@ def lire_page(f_in, a_lire, NBTREE):
             r = 0
             for i in range(0, cEnt):
                 r+=cbEnt
-                nid, zero,biddata, bidsub, nidparent, dwpad=(struct.unpack('<IIQQII', page[r_old:r]))
-                if nid in NBTREE:
-                    print("BUG je pensais que le NID est unique ....")
-                else:
-                    NBTREE[nid]=(biddata,bidsub,nidparent)
+                if tree_type == "NBT":
+                    nid, zero,biddata, bidsub, nidparent, dwpad=(struct.unpack('<IIQQII', page[r_old:r]))
+                    if nid in TREE:
+                        print("BUG je pensais que le NID est unique ....")
+                    else:
+                        TREE[nid]=(biddata,bidsub,nidparent)
+                elif tree_type == "BBT":
+                    # bref = page[r_old:r_old + 16]
+                    bref_bid, bref_ib, cb, cRef, dwPadding = struct.unpack('<QQHHI', page[r_old:r])
+                    if bref_bid in TREE:
+                        print("Bug je pensais que le Bref était unique .....")
+                    else:
+                        TREE[bref_bid] = (bref_ib, cb, cRef)
                 r_old = r
         else:
-            print("Level ", cLevel, " .... reste à lire")
+            #print("Level ", cLevel, " .... reste à lire")
             r_old = 0
             r = 0
             for i in range(0,cEnt):
@@ -96,6 +104,7 @@ elif wVer == 23:
     TYPE ="UNICODE"
 else:
     print("Ben Merde alors : ni ANSI ni UNICODE")
+    exit()
 wVerClient = f_in.read(2)
 print("Version ", struct.unpack('<h', wVerClient)[0])
 bPlatformCreate = f_in.read(1).hex()
@@ -175,7 +184,48 @@ NBTREE = dict()
 a_lire = list()
 a_lire.append((BREFNBT_bid, BREFNBT_ib))
 while len(a_lire) != 0:
-    a_lire = lire_page(f_in, a_lire, NBTREE)
+    a_lire = lire_page(f_in, a_lire, NBTREE, "NBT")
 #for key in sorted(NBTREE):
 #    print(key, "==>",NBTREE[key])
 print("*********** BNT TREE chargé ************")
+print(len(NBTREE), " Enregistrements")
+print("************* BBT ROOT ****************")
+BBTREE = dict()
+a_lire = list()
+a_lire.append((BREFBBT_bid, BREFBBT_ib))
+while len(a_lire) != 0:
+    a_lire = lire_page(f_in, a_lire, BBTREE, "BBT")
+print("*********** BBT TREE chargé ************")
+print(len(BBTREE), " Enregistrements")
+#for key in sorted(BBTREE):
+#    print(key, "==>",BBTREE[key])
+#for key in sorted(NBTREE):
+#    a = '{:032b}'.format(key)
+#    print((int(a[0:5])),' - ', a[5:])
+# Pour l'instant pas de gestion de l'article BREF = car il n'y a pas de type différents
+'''
+for key in NBTREE:
+    print("pour le NID = ", key, "=>", NBTREE[key])
+    bid = NBTREE[key][0]
+    if bid in BBTREE:
+        print("touvé ", BBTREE[bid])
+'''
+print("pour le block au 21440 34 byte de data")
+f_in.seek(21440)
+test = f_in.read(64)
+print(test)
+print(test[0:34])
+a, b, c, d = struct.unpack("<HHLQ", test[48:])
+print(a,b,c,d)
+print("pour le block bid 70792 au 72641728 de 2756 data")
+depart = 2756 + 16
+for i in range(0,64):
+    if (depart+i)%64 == 0:
+        print("padding = ", i, " block = ", depart +i, " bytes.")
+        break
+f_in.seek(72641728)
+test = f_in.read(2816)
+a, b, c, d = struct.unpack("<HHLQ", test[2816-16:])
+print(a,b,c,d)
+print(test[:2756])
+    
