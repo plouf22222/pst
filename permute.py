@@ -5,7 +5,7 @@ Created on 31 juil. 2016
 @author: Plouf  
 '''
 
-base_permute = [ 65,  54,  19,  98, 168,  33, 110, 187,
+mpbbCrypt = bytes([ 65,  54,  19,  98, 168,  33, 110, 187,
              244,  22, 204,   4, 127, 100, 232,  93,
              30, 242, 203,  42, 116, 197,  94,  53,
              210, 149,  71, 158, 150,  45, 154, 136,
@@ -100,19 +100,9 @@ base_permute = [ 65,  54,  19,  98, 168,  33, 110, 187,
              200, 161, 128, 166, 153, 152, 168,  47,
              14, 129, 101, 115, 228, 194, 162, 138,
              212, 225,  17, 208,   8, 139,  42, 242,
-             237, 154, 100,  63, 193, 108, 249, 236]
-'''
-mpbbCrypt = bytes(base_permute)
-pv = b'\xd2d\xff\x93LAAAAAAA'
-cb = len(pv)
-debut = 512
-decode = list()
-for i in pv:
-    decode.append(mpbbCrypt[debut + (i & 0xff)])
-print(bytes(decode))
-'''
+             237, 154, 100,  63, 193, 108, 249, 236])
+
 def permute(pv, decode):
-    mpbbCrypt = bytes(base_permute)
     cb = len(pv)
     if decode == True:
         debut = 512
