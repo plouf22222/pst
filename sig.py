@@ -7,7 +7,7 @@ Created on 28 sept. 2016
 
 def ComputeSig(ib, bid):
     ib ^= bid
-    x = bin(ib)
+    x = bin(ib)[2:]
     try:
         b = x[-16:]
     except:
