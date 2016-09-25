@@ -7,12 +7,7 @@ Created on 28 sept. 2016
 
 def ComputeSig(ib, bid):
     ib ^= bid
-    x = bin(ib)[2:]
-    try:
-        b = x[-16:]
-    except:
-        b = x   
-    return(((ib >> 16) ^ int(b, 2)))
+    return(((ib >> 16) ^ int(bin(ib)[2:][-16:], 2)))
 
 
 def test_ComputeSig():
