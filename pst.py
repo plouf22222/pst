@@ -2,23 +2,21 @@
 '''
 Created on 7 juil. 2016
 
-@author: Plouf  
+@author: Plouf
 '''
-import binascii
-from array import *
+
 import struct
-from _ctypes import buffer_info
-from permute import *
+import permute
 
 
 def swap_order(d, wsz=4, gsz=2):
-    return "".join(["".join([m[i:i+gsz]
-                            for i in range(wsz-gsz, -gsz, -gsz)])
-                            for m in [d[i:i+wsz] for i in range(0, len(d), wsz)]])
+    return "".join(["".join([m[i:i + gsz]
+                            for i in range(wsz - gsz, -gsz, -gsz)])
+                    for m in [d[i:i + wsz] for i in range(0, len(d), wsz)]])
 
 
 def swap_order16(d):
-    return "".join(d[i:i+2] for i in range(len(d)-2,-1,-2))
+    return "".join(d[i:i + 2] for i in range(len(d) - 2, -1, -2))
 
 
 def lire_page(f_in, a_lire, TREE, tree_type):
@@ -27,27 +25,27 @@ def lire_page(f_in, a_lire, TREE, tree_type):
         numero, position = a_lire.pop()
         f_in.seek(position)
         page = f_in.read(512)
-        btpage = page[488:488+8]
+        btpage = page[488:488 + 8]
         cEnt, cEntMax, cbEnt, cLevel, dwPadding = struct.unpack('<BBBBI', btpage)
-        trailerpage = page[512-16:512]
+        trailerpage = page[512 - 16:512]
         ptype, ptyper, wSig, dwCRC, bid = struct.unpack('<BBHIQ', trailerpage)
         if numero == bid:
             pass
-            # print("COOL ça marche : ",numéro, " == ", bid, "|| ", cEnt)
+            #  print("COOL ça marche : ",numéro, " == ", bid, "|| ", cEnt)
         else:
             print("BUG ! les pages ne sont pas identiques")
         if cLevel == 0:
-            # print("NBT ici !", cbEnt)
+            #  print("NBT ici !", cbEnt)
             r_old = 0
             r = 0
             for i in range(0, cEnt):
-                r+=cbEnt
+                r += cbEnt
                 if tree_type == "NBT":
-                    nid, zero,biddata, bidsub, nidparent, dwpad=(struct.unpack('<IIQQII', page[r_old:r]))
+                    nid, zero, biddata, bidsub, nidparent, dwpad = (struct.unpack('<IIQQII', page[r_old:r]))
                     if nid in TREE:
                         print("BUG je pensais que le NID est unique ....")
                     else:
-                        TREE[nid]=(biddata,bidsub,nidparent)
+                        TREE[nid] = (biddata, bidsub, nidparent)
                 elif tree_type == "BBT":
                     # bref = page[r_old:r_old + 16]
                     bref_bid, bref_ib, cb, cRef, dwPadding = struct.unpack('<QQHHI', page[r_old:r])
@@ -57,18 +55,18 @@ def lire_page(f_in, a_lire, TREE, tree_type):
                         TREE[bref_bid] = (bref_ib, cb, cRef)
                 r_old = r
         else:
-            #print("Level ", cLevel, " .... reste à lire")
+            # print("Level ", cLevel, " .... reste à lire")
             r_old = 0
             r = 0
-            for i in range(0,cEnt):
+            for i in range(0, cEnt):
                 r += cbEnt
-                nbt=(struct.unpack('<QQQ', page[r_old:r]))
+                nbt = (struct.unpack('<QQQ', page[r_old:r]))
                 # check if we are in the NBT tree
-                # print("Key=",nbt[i][0]," Bid=",nbt[i][1]," Ib=",nbt[i][2])
+                #  print("Key=",nbt[i][0]," Bid=",nbt[i][1]," Ib=",nbt[i][2])
                 r_old = r
-                retour.append((nbt[1],nbt[2]))
+                retour.append((nbt[1], nbt[2]))
     return retour
-    
+
 
 TYPE = ""
 file = "backup.pst"
@@ -102,7 +100,7 @@ if wVer == 14 or wVer == 15:
     TYPE = "ANSI"
 elif wVer == 23:
     print("UNOCODE PST")
-    TYPE ="UNICODE"
+    TYPE = "UNICODE"
 else:
     print("Ben Merde alors : ni ANSI ni UNICODE")
     exit()
@@ -124,9 +122,9 @@ elif TYPE == "UNICODE":
     bidNextP = f_in.read(8)
     print("Next page BID", bidNextP.hex(), " == ", struct.unpack('<Q', bidNextP)[0])
 dwUnique = f_in.read(4)
-# print("Fichier modifié ",struct.unpack('<I', dwUnique)[0]," fois")
+#  print("Fichier modifié ",struct.unpack('<I', dwUnique)[0]," fois")
 rgnid = list()
-for i in range (0,32):
+for i in range(0, 32):
     rgnid.append(struct.unpack('<I', f_in.read(4))[0])
 print(rgnid)
 qwUnused = f_in.read(8)
@@ -156,7 +154,7 @@ rgbReserved2 = f_in.read(3)
 bReserved = f_in.read(1)
 rgbReserved3 = f_in.read(32)
 print("************* ROOT      ********************")
-# root 
+# root
 # print(root)
 dwReserved = root[0:4]
 ibFileEof = root[4:12]
@@ -172,7 +170,7 @@ BREFNBT = root[36:52]
 BREFNBT_bid, BREFNBT_ib = struct.unpack('<QQ', BREFNBT)
 print('BREFNBT_bid => ', BREFNBT_bid, 'BREFNBT_ib => ', BREFNBT_ib)
 BREFBBT = root[52:68]
-#BREFBBT = int(swap_order(BREFBBT.hex(),32,2),16)
+# BREFBBT = int(swap_order(BREFBBT.hex(),32,2),16)
 BREFBBT_bid, BREFBBT_ib = struct.unpack('<QQ', BREFBBT)
 print('BREFBBT_bid => ', BREFBBT_bid, 'BREFBBT_ib => ', BREFBBT_ib)
 fAMapValid = root[68:69]
@@ -186,7 +184,7 @@ a_lire = list()
 a_lire.append((BREFNBT_bid, BREFNBT_ib))
 while len(a_lire) != 0:
     a_lire = lire_page(f_in, a_lire, NBTREE, "NBT")
-#for key in sorted(NBTREE):
+# for key in sorted(NBTREE):
 #    print(key, "==>",NBTREE[key])
 print("*********** BNT TREE chargé ************")
 print(len(NBTREE), " Enregistrements")
@@ -198,9 +196,9 @@ while len(a_lire) != 0:
     a_lire = lire_page(f_in, a_lire, BBTREE, "BBT")
 print("*********** BBT TREE chargé ************")
 print(len(BBTREE), " Enregistrements")
-#for key in sorted(BBTREE):
+# for key in sorted(BBTREE):
 #    print(key, "==>",BBTREE[key])
-#for key in sorted(NBTREE):
+# for key in sorted(NBTREE):
 #    a = '{:032b}'.format(key)
 #    print((int(a[0:5])),' - ', a[5:])
 # Pour l'instant pas de gestion de l'article BREF = car il n'y a pas de type différents
@@ -217,38 +215,36 @@ test = permute(f_in.read(64), True)
 
 print(test[0:34])
 a, b, c, d = struct.unpack("<HHLQ", test[48:])
-print(a,b,c,d)
+print(a, b, c, d)
 hnhdr = test[:12]
-a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
-print(a,b,c,d,e)
+a, b, c, d, e = struct.unpack("<HBBII", hnhdr)
+print(a, b, c, d, e)
 
 print("pour le block bid 70792 au 72641728 de 2756 data")
 depart = 2756 + 16
-for i in range(0,64):
-    if (depart+i)%64 == 0:
-        print("padding = ", i, " block = ", depart +i, " bytes.")
+for i in range(0, 64):
+    if (depart + i) % 64 == 0:
+        print("padding = ", i, " block = ", depart + i, " bytes.")
         break
 f_in.seek(72641728)
 test = permute(f_in.read(2816), True)
-a, b, c, d = struct.unpack("<HHLQ", test[2816-16:])
-print(a,b,c,d)
+a, b, c, d = struct.unpack("<HHLQ", test[2816 - 16:])
+print(a, b, c, d)
 hnhdr = test[:12]
-a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
-print(a,b,c,d,e)
-#pour le NID =  2101284 => (14684, 14682, 32898)
-#touvé  (10748608, 3444, 2)
+a, b, c, d, e = struct.unpack("<HBBII", hnhdr)
+print(a, b, c, d, e)
+# pour le NID =  2101284 => (14684, 14682, 32898)
+# touvé  (10748608, 3444, 2)
 print("pour le block bid 14684 au 10748608 de 3444 data")
 depart = 3444 + 16
-for i in range(0,64):
-    if (depart+i)%64 == 0:
-        print("padding = ", i, " block = ", depart +i, " bytes.")
+for i in range(0, 64):
+    if (depart + i) % 64 == 0:
+        print("padding = ", i, " block = ", depart + i, " bytes.")
         break
 f_in.seek(10748608)
-test = permute(f_in.read(depart+i), True)
-a, b, c, d = struct.unpack("<HHLQ", test[(depart+i)-16:])
-print(a,b,c,d)
+test = permute(f_in.read(depart + i), True)
+a, b, c, d = struct.unpack("<HHLQ", test[(depart + i) - 16:])
+print(a, b, c, d)
 hnhdr = test[:12]
-a,b,c,d,e = struct.unpack("<HBBII", hnhdr)
-print(a,b,c,d,e)
-
-
+a, b, c, d, e = struct.unpack("<HBBII", hnhdr)
+print(a, b, c, d, e)
